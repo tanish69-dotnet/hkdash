@@ -662,13 +662,17 @@ app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// ─── Start Server ───
-app.listen(PORT, () => {
-    console.log(`
+// ─── Start Server (or export for Vercel) ───
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => {
+        console.log(`
 ╔══════════════════════════════════════════╗
 ║   HACKER DASHBOARD SERVER ACTIVE         ║
 ║   Port: ${PORT}                              ║
 ║   URL:  http://localhost:${PORT}              ║
 ╚══════════════════════════════════════════╝
-    `);
-});
+        `);
+    });
+}
+
+module.exports = app;
