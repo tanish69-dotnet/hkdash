@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Hacker Dashboard — User Management System with cyberpunk terminal UI">
+    <title>HKRDASH // User Management System v4.2</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Share+Tech+Mono&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Matrix rain canvas -->
+    <canvas id="matrix-canvas"></canvas>
+    <!-- Scanline overlay -->
+    <div class="scanlines"></div>
+
+    <!-- Boot screen -->
+    <div id="boot-screen">
+        <div class="boot-content">
+            <div class="boot-logo">
+                <pre class="ascii-art" id="ascii-logo"></pre>
+            </div>
+            <div class="boot-text" id="boot-text"></div>
+            <div class="boot-progress">
+                <div class="boot-bar" id="boot-bar"></div>
+            </div>
+            <div class="boot-status" id="boot-status">INITIALIZING SYSTEM...</div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div id="dashboard" class="hidden">
+        <!-- Top Bar -->
+        <header id="topbar">
+            <div class="topbar-left">
+                <span class="logo-text">HKRDASH</span>
+                <span class="logo-version">v4.2</span>
+                <span class="separator">|</span>
+                <span class="status-dot online"></span>
+                <span class="status-text">SYSTEM ONLINE</span>
+            </div>
+            <div class="topbar-center">
+                <span id="clock"></span>
+            </div>
+            <div class="topbar-right">
+                <span class="topbar-item" id="cpu-mini">CPU: ---%</span>
+                <span class="topbar-item" id="mem-mini">MEM: ---%</span>
+                <span class="topbar-item" id="threat-count">THREATS: 0</span>
+                <span class="user-badge">root@hkrdash</span>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav id="nav-tabs">
+            <button class="nav-tab active" data-panel="overview" id="tab-overview">
+                <span class="tab-icon">◈</span> OVERVIEW
+            </button>
+            <button class="nav-tab" data-panel="users" id="tab-users">
+                <span class="tab-icon">◉</span> USERS
+            </button>
+            <button class="nav-tab" data-panel="terminal" id="tab-terminal">
+                <span class="tab-icon">▸</span> TERMINAL
+            </button>
+            <button class="nav-tab" data-panel="logs" id="tab-logs">
+                <span class="tab-icon">▤</span> LOGS
+            </button>
+        </nav>
+
+        <!-- ════════════════════════════════════════ -->
+        <!-- PANEL: OVERVIEW                          -->
+        <!-- ════════════════════════════════════════ -->
+        <section id="panel-overview" class="panel active">
+            <div class="panel-grid overview-grid">
+                <div class="stat-card" id="card-cpu">
+                    <div class="card-header">
+                        <span class="card-label">CPU USAGE</span>
+                        <span class="card-icon pulse">●</span>
+                    </div>
+                    <div class="card-value" id="stat-cpu">---%</div>
+                    <div class="card-bar"><div class="bar-fill" id="bar-cpu"></div></div>
+                    <div class="card-sub" id="stat-cpu-model">Loading...</div>
+                </div>
+
+                <div class="stat-card" id="card-mem">
+                    <div class="card-header">
+                        <span class="card-label">MEMORY</span>
+                        <span class="card-icon">◆</span>
+                    </div>
+                    <div class="card-value" id="stat-mem">---%</div>
+                    <div class="card-bar"><div class="bar-fill" id="bar-mem"></div></div>
+                    <div class="card-sub" id="stat-mem-detail">Loading...</div>
+                </div>
+
+                <div class="stat-card" id="card-users-count">
+                    <div class="card-header">
+                        <span class="card-label">TOTAL USERS</span>
+                        <span class="card-icon">◉</span>
+                    </div>
+                    <div class="card-value" id="stat-users">---</div>
+                    <div class="card-bar"><div class="bar-fill" id="bar-users"></div></div>
+                    <div class="card-sub">Registered in database</div>
+                </div>
+
+                <div class="stat-card threat" id="card-threats">
+                    <div class="card-header">
+                        <span class="card-label">THREATS</span>
+                        <span class="card-icon blink">▲</span>
+                    </div>
+                    <div class="card-value" id="stat-threats">---</div>
+                    <div class="card-bar"><div class="bar-fill danger" id="bar-threats"></div></div>
+                    <div class="card-sub">Critical alerts detected</div>
+                </div>
+
+                <!-- Live Log Feed -->
+                <div class="log-feed-card">
+                    <div class="card-header">
+                        <span class="card-label">▤ LIVE SYSTEM LOG</span>
+                        <span class="card-icon pulse">●</span>
+                    </div>
+                    <div class="log-feed" id="live-log-feed"></div>
+                </div>
+
+                <!-- User Preview -->
+                <div class="network-preview-card">
+                    <div class="card-header">
+                        <span class="card-label">◉ RECENT USERS</span>
+                        <button class="mini-btn" onclick="switchTab('users')">MANAGE ▸</button>
+                    </div>
+                    <div class="node-list-mini" id="user-list-mini"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ════════════════════════════════════════ -->
+        <!-- PANEL: USERS (CRUD)                      -->
+        <!-- ════════════════════════════════════════ -->
+        <section id="panel-users" class="panel">
+            <div class="panel-header-bar">
+                <h2 class="panel-title">◉ USER MANAGEMENT</h2>
+                <div class="panel-header-actions">
+                    <!-- Search bar -->
+                    <div class="search-box">
+                        <input type="text" id="user-search" placeholder="Search name, bio..." class="search-input">
+                        <button class="search-go" onclick="searchUsers()">SEARCH</button>
+                    </div>
+                    <button class="action-btn" id="btn-add-user" onclick="showUserForm()">+ ADD USER</button>
+                </div>
+            </div>
+
+            <!-- Filter & Sort Bar -->
+            <div class="filter-bar">
+                <div class="filter-group">
+                    <label>MIN AGE</label>
+                    <input type="number" id="filter-min-age" placeholder="0" class="filter-input">
+                </div>
+                <div class="filter-group">
+                    <label>MAX AGE</label>
+                    <input type="number" id="filter-max-age" placeholder="120" class="filter-input">
+                </div>
+                <div class="filter-group">
+                    <label>SORT BY</label>
+                    <select id="filter-sort" class="filter-input">
+                        <option value="-createdAt">Newest</option>
+                        <option value="createdAt">Oldest</option>
+                        <option value="name">Name A-Z</option>
+                        <option value="-name">Name Z-A</option>
+                        <option value="age">Age ↑</option>
+                        <option value="-age">Age ↓</option>
+                    </select>
+                </div>
+                <button class="filter-apply-btn" onclick="applyFilters()">APPLY ▸</button>
+                <button class="filter-reset-btn" onclick="resetFilters()">RESET</button>
+            </div>
+
+            <!-- Add/Edit User Form (hidden by default) -->
+            <div class="form-overlay hidden" id="user-form-overlay">
+                <div class="form-card">
+                    <div class="form-header">
+                        <span id="form-title">CREATE USER</span>
+                        <button class="close-btn" onclick="hideUserForm()">✕</button>
+                    </div>
+                    <div class="form-body">
+                        <input type="hidden" id="edit-user-id">
+                        <div class="form-group">
+                            <label>NAME <span class="req">*</span></label>
+                            <input type="text" id="user-name" placeholder="Min 3 characters">
+                        </div>
+                        <div class="form-group">
+                            <label>EMAIL <span class="req">*</span></label>
+                            <input type="email" id="user-email" placeholder="user@example.com">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>AGE</label>
+                                <input type="number" id="user-age" placeholder="0-120" min="0" max="120">
+                            </div>
+                            <div class="form-group">
+                                <label>USER ID</label>
+                                <input type="text" id="user-userid" placeholder="USR-XXX">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>HOBBIES <span class="hint">(comma separated)</span></label>
+                            <input type="text" id="user-hobbies" placeholder="coding, hacking, AI">
+                        </div>
+                        <div class="form-group">
+                            <label>BIO</label>
+                            <textarea id="user-bio" placeholder="Write a short bio..." rows="3" class="form-textarea"></textarea>
+                        </div>
+                        <button class="submit-btn" id="form-submit-btn" onclick="submitUserForm()">CREATE USER ▸</button>
+                        <div class="form-error hidden" id="form-error"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Users Table -->
+            <div class="users-table-wrap">
+                <table class="data-table" id="users-table">
+                    <thead>
+                        <tr>
+                            <th>NAME</th>
+                            <th>EMAIL</th>
+                            <th>AGE</th>
+                            <th>HOBBIES</th>
+                            <th>USER ID</th>
+                            <th>CREATED</th>
+                            <th>ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-tbody"></tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination" id="pagination"></div>
+        </section>
+
+        <!-- ════════════════════════════════════════ -->
+        <!-- PANEL: TERMINAL                          -->
+        <!-- ════════════════════════════════════════ -->
+        <section id="panel-terminal" class="panel">
+            <div class="terminal-container">
+                <div class="terminal-header">
+                    <div class="term-dots">
+                        <span class="dot red"></span>
+                        <span class="dot yellow"></span>
+                        <span class="dot green"></span>
+                    </div>
+                    <span class="term-title">root@hkrdash:~$</span>
+                    <span class="term-info">bash 5.1.16</span>
+                </div>
+                <div class="terminal-body" id="terminal-body">
+                    <div class="term-line welcome">
+                        <span class="term-prefix">[SYSTEM]</span>
+                        Welcome to HKRDASH Terminal v4.2
+                    </div>
+                    <div class="term-line welcome">
+                        <span class="term-prefix">[SYSTEM]</span>
+                        Type <span class="cmd-highlight">help</span> for available commands
+                    </div>
+                    <div class="term-line welcome">
+                        <span class="term-prefix">[SYSTEM]</span>
+                        ─────────────────────────────────
+                    </div>
+                </div>
+                <div class="terminal-input-area">
+                    <span class="prompt">root@hkrdash:~$</span>
+                    <input type="text" id="terminal-input" class="terminal-input" autocomplete="off" placeholder="Enter command...">
+                </div>
+            </div>
+        </section>
+
+        <!-- ════════════════════════════════════════ -->
+        <!-- PANEL: LOGS                              -->
+        <!-- ════════════════════════════════════════ -->
+        <section id="panel-logs" class="panel">
+            <div class="panel-header-bar">
+                <h2 class="panel-title">▤ SYSTEM LOGS</h2>
+                <div class="log-filters">
+                    <button class="filter-btn active" data-level="all" onclick="filterLogs('all', this)">ALL</button>
+                    <button class="filter-btn" data-level="INFO" onclick="filterLogs('INFO', this)">INFO</button>
+                    <button class="filter-btn" data-level="WARN" onclick="filterLogs('WARN', this)">WARN</button>
+                    <button class="filter-btn" data-level="ERROR" onclick="filterLogs('ERROR', this)">ERROR</button>
+                    <button class="filter-btn" data-level="CRITICAL" onclick="filterLogs('CRITICAL', this)">CRITICAL</button>
+                    <button class="filter-btn danger-btn" onclick="clearLogs()">CLEAR ALL</button>
+                </div>
+            </div>
+            <div class="logs-container" id="logs-container"></div>
+        </section>
+
+        <!-- Status bar -->
+        <footer id="statusbar">
+            <span id="sb-connection">● CONNECTED</span>
+            <span id="sb-db">DB: MongoDB Atlas</span>
+            <span id="sb-uptime">UPTIME: ---</span>
+            <span id="sb-packets">PKT: 0</span>
+            <span id="sb-latency">LATENCY: ---ms</span>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
